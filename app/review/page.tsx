@@ -128,7 +128,7 @@ const getPriorityImprovements = (analyses: AnswerAnalysis[]) => {
     }
   }
 
-  return [...counter.entries()]
+  return Array.from(counter.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([tip]) => tip);
@@ -143,7 +143,7 @@ const getTopStrengths = (analyses: AnswerAnalysis[]) => {
     }
   }
 
-  return [...counter.entries()]
+  return Array.from(counter.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
     .map(([note]) => note);
