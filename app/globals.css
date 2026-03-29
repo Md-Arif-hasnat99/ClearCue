@@ -1,11 +1,61 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   min-height: 100vh;
-  background-color: rgb(245 245 244);
-  color: rgb(15 23 42);
+  background-color: #131313;
+  color: #e5e2e1;
+  font-family: var(--font-body), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-headline), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+:root {
+  --cc-bg: #131313;
+  --cc-surface-low: #1c1b1b;
+  --cc-surface: #201f1f;
+  --cc-surface-high: #2a2a2a;
+  --cc-surface-highest: #353534;
+  --cc-primary: #4edea3;
+  --cc-primary-deep: #00402a;
+  --cc-secondary: #cec5bf;
+  --cc-outline: #404945;
+  --cc-tertiary: #ffb95f;
+}
+
+.auteur-gradient {
+  background: linear-gradient(135deg, var(--cc-primary) 0%, var(--cc-primary-deep) 100%);
+}
+
+.glass-panel {
+  background: rgba(53, 53, 52, 0.55);
+  backdrop-filter: blur(20px);
+}
+
+.soft-grain {
+  position: relative;
+}
+
+.soft-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
 }
 
 @layer utilities {

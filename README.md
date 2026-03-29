@@ -7,7 +7,7 @@
 ## ✨ Key Features
 
 - **Personalized Interview Prep**: Tailored questions based on targeted job titles and industries.
-- **AI-Powered Sessions**: Practice mock interviews utilizing the Gemini API to analyze responses and provide actionable feedback.
+- **AI-Powered Sessions**: Practice mock interviews utilizing the Groq API to analyze responses and provide actionable feedback.
 - **Modern User Experience**: A beautiful, responsive interface built carefully with Next.js 14 and Tailwind CSS.
 - **Secure Authentication**: Robust authentication system built on NextAuth v5 featuring secure credentials and route protection.
 - **Progress Tracking** *(Coming Soon)*: Review past interviews within your integrated dashboard.
@@ -19,7 +19,7 @@
 - **Authentication**: [NextAuth (Auth.js) v5](https://authjs.dev/)
 - **Database**: [MongoDB](https://www.mongodb.com/) + [Mongoose](https://mongoosejs.com/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **AI Integration**: Gemini API *(Phase 2)*
+- **AI Integration**: Groq API *(Phase 2)*
 
 ## 📂 Folder Structure
 
@@ -79,8 +79,8 @@ Ensure you have the following installed on your machine:
    # NextAuth
    AUTH_SECRET=a_random_32_character_secret 
 
-   # Gemini API (Phase 2)
-   GEMINI_API_KEY=your_gemini_api_key
+   # Groq API (Phase 2)
+   GROQ_API_KEY=your_groq_api_key
    ```
 
 4. **Run the development server:**
@@ -94,7 +94,7 @@ Ensure you have the following installed on your machine:
 ## 🗺️ Roadmap Planner
 
 - **Phase 1 (Complete):** Core Next.js scaffolding, MongoDB integration, NextAuth v5 credentials, & High-conversion polished landing pages unauthenticated routes.
-- **Phase 2 (In-Progress):** Interview configuration forms (job title/industry setup), Gemini AI API integration, and interactive mock interview UI.
+- **Phase 2 (In-Progress):** Interview configuration forms (job title/industry setup), Groq API integration, and interactive mock interview UI.
 - **Phase 3 (Upcoming):** Audio/Speech-to-Text inputs, user dashboard history/score tracking, and detailed performance metrics.
 
 ## 🤝 Contributing

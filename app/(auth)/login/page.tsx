@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
@@ -35,88 +36,98 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-stone-100 px-4 py-10 sm:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_15%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_95%_0%,rgba(245,158,11,0.2),transparent_40%)]" />
+    <main className="min-h-screen bg-[#131313] text-[#e5e2e1]">
+      <div className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="soft-grain relative hidden overflow-hidden lg:block">
+          <Image
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7Rm3VG8k1uxWlat9jxGZmcRk0WlaEgRGiKDq3JVo4rYP4bRtIG9ciNSoSLO7o6vNJ-S7JFhLGXSbGN-N3V6JArZPk3zv7yZF1qEyUdRGh5FFQa8fP2b0jmd9kGGEhmtu4lvKyA8kmNeAqjNdah6s2XdbgLBHnZjBTjDdnNTuyfMztq_42qpl23scAmjCBq6ByrtEGNiqd5ZmK27zdP4crxIi5BXoO5BccshaUA_GeAt3JR5O_mHC1OQnVws4GDE9jENI3AI-QYKnw"
+            alt="studio"
+            fill
+            sizes="(min-width: 1024px) 60vw, 100vw"
+            className="absolute inset-0 h-full w-full object-cover brightness-50"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#131313]/50 to-[#131313]" />
 
-      <div className="relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-[0_20px_60px_rgba(28,25,23,0.16)] lg:grid-cols-2">
-        <section className="hidden bg-slate-900 p-8 text-stone-100 lg:block">
-          <p className="text-xs uppercase tracking-[0.22em] text-stone-300">ClearCue</p>
-          <h1 className="mt-5 text-3xl font-semibold leading-tight">Welcome back to deliberate interview practice</h1>
-          <p className="mt-4 text-sm text-stone-300">
-            Pick up where you left off, continue your role-specific sessions, and track measurable improvement.
-          </p>
-
-          <div className="mt-8 space-y-3">
-            <div className="rounded-xl border border-stone-700 bg-stone-900/50 p-4">
-              <p className="text-xs uppercase tracking-wide text-stone-400">Focused prompts</p>
-              <p className="mt-1 text-sm text-stone-200">Questions adapt to your job target and interview style.</p>
+          <div className="relative z-10 flex h-full flex-col justify-between p-12 xl:p-20">
+            <div>
+              <p className="text-3xl font-bold tracking-tight text-[#4edea3]">ClearCue</p>
             </div>
-            <div className="rounded-xl border border-stone-700 bg-stone-900/50 p-4">
-              <p className="text-xs uppercase tracking-wide text-stone-400">Progress clarity</p>
-              <p className="mt-1 text-sm text-stone-200">See your score trend and confidence level over time.</p>
+            <div className="max-w-xl space-y-6">
+              <p className="inline-flex rounded-full border border-[#ffb95f]/35 bg-[#503000]/40 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffb95f]">
+                Premium Coaching Interface
+              </p>
+              <h1 className="text-5xl font-extrabold leading-tight text-[#e5e2e1] xl:text-7xl">
+                Master the <span className="italic text-[#4edea3]">Art</span> of the Interview
+              </h1>
+              <p className="text-lg text-[#cec5bf]">
+                Enter your studio and continue role-specific interview practice with measurable feedback.
+              </p>
             </div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8a938f]">Handcrafted for peak performance</p>
           </div>
         </section>
 
-        <section className="p-6 sm:p-8 lg:p-10">
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Sign In</p>
-            <Link className="text-sm font-medium text-slate-700 underline-offset-4 hover:text-slate-900 hover:underline" href="/">
-              Back Home
-            </Link>
+        <section className="flex min-h-screen items-center justify-center bg-[#131313] p-6 sm:p-10">
+          <div className="w-full max-w-md rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-7 sm:p-9">
+            <div className="mb-8 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.18em] text-[#8a938f]">Welcome Back</p>
+              <Link href="/" className="text-xs font-semibold uppercase tracking-[0.12em] text-[#cec5bf] hover:text-[#4edea3]">
+                Home
+              </Link>
+            </div>
+
+            <h2 className="text-3xl font-bold text-[#e5e2e1]">Log In</h2>
+            <p className="mt-2 text-sm text-[#cec5bf]/80">Access your interview studio and continue practice.</p>
+
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a938f]" htmlFor="email">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full border-0 border-b border-[#404945] bg-transparent px-0 py-3 text-[#e5e2e1] placeholder:text-[#8a938f] focus:border-[#4edea3] focus:ring-0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a938f]" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full border-0 border-b border-[#404945] bg-transparent px-0 py-3 text-[#e5e2e1] placeholder:text-[#8a938f] focus:border-[#4edea3] focus:ring-0"
+                />
+              </div>
+
+              {error ? <p className="text-sm text-[#ffb4ab]">{error}</p> : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="auteur-gradient w-full rounded-lg px-5 py-4 text-sm font-bold tracking-wide text-[#003824] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting ? "Signing in..." : "Login to ClearCue"}
+              </button>
+            </form>
+
+            <p className="mt-6 text-sm text-[#cec5bf]/80">
+              Need an account?{" "}
+              <Link className="font-bold text-[#4edea3] hover:text-[#6ffbbe]" href="/register">
+                Register
+              </Link>
+            </p>
           </div>
-
-          <h2 className="text-2xl font-semibold text-slate-900">Log in to continue</h2>
-          <p className="mt-2 text-sm text-slate-600">Continue your practice sessions and improve interview confidence.</p>
-
-          <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              />
-            </div>
-
-            {error ? <p className="text-sm text-rose-700">{error}</p> : null}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-400"
-            >
-              {isSubmitting ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-sm text-slate-600">
-            Need an account?{" "}
-            <Link className="font-medium text-amber-700 hover:text-amber-800" href="/register">
-              Register
-            </Link>
-          </p>
         </section>
       </div>
     </main>

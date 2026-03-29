@@ -10,12 +10,17 @@ const publicRoutes = new Set(["/", "/login", "/register"]);
 export default auth((request) => {
   const { nextUrl } = request;
   const { pathname } = nextUrl;
-  const isAuthenticated = Boolean(request.auth);
+  const isAuthenticated = Boolean(request.auth?.user?.email);
 
   const isApiAuthRoute = pathname.startsWith("/api/auth");
   const isPublicRoute = publicRoutes.has(pathname);
 
-  if (!isAuthenticated && (pathname.startsWith("/dashboard") || pathname.startsWith("/interview"))) {
+  if (
+    !isAuthenticated &&
+    (pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/interview") ||
+      pathname.startsWith("/review"))
+  ) {
     const loginUrl = new URL("/login", nextUrl);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);

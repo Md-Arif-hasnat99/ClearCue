@@ -1,9 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Epilogue, Manrope } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 
-const inter = Inter({ subsets: ["latin"] });
+const epilogue = Epilogue({
+  subsets: ["latin"],
+  variable: "--font-headline",
+  weight: ["700", "800"],
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "ClearCue",
@@ -17,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-stone-100 text-slate-900`}>
+      <body className={`${epilogue.variable} ${manrope.variable} bg-[#131313] text-[#e5e2e1] antialiased`}>
         <SessionProviderClient>
           <div className="min-h-screen">{children}</div>
         </SessionProviderClient>
