@@ -26,8 +26,19 @@ export default function LoginPage() {
 
     setIsSubmitting(false);
 
-    if (!result || result.error) {
-      setError("Invalid email or password.");
+    if (!result) {
+      setError("Login failed. Please try again.");
+      return;
+    }
+
+    if (result.error) {
+      if (result.error === "CredentialsSignin") {
+        setError("Invalid email or password.");
+      } else {
+        setError(
+          "Login is temporarily unavailable. Check database connection and try again."
+        );
+      }
       return;
     }
 

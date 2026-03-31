@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${epilogue.variable} ${manrope.variable} bg-[#131313] text-[#e5e2e1] antialiased`}>
         <SessionProviderClient>
-          <div className="min-h-screen">{children}</div>
+          <div className="h-dvh overflow-hidden">{children}</div>
         </SessionProviderClient>
       </body>
     </html>
