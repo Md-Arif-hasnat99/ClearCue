@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import ProtectedTopNav from "@/components/ProtectedTopNav";
+import DashboardPerformancePanel from "@/components/DashboardPerformancePanel";
 import { auth } from "@/auth";
 
 export default async function DashboardPage() {
@@ -10,7 +11,7 @@ export default async function DashboardPage() {
     <main className="min-h-screen bg-[#131313] text-[#e5e2e1]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(78,222,163,0.12),transparent_35%),radial-gradient(circle_at_90%_5%,rgba(255,185,95,0.1),transparent_28%)]" />
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 pb-28 pt-4 sm:px-8 lg:ml-64 lg:max-w-none lg:px-12 lg:pb-12 lg:pt-8">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-28 pt-4 sm:px-8 lg:max-w-none lg:px-12 lg:pb-12 lg:pl-72 lg:pt-8">
         <ProtectedTopNav />
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -87,6 +88,8 @@ export default async function DashboardPage() {
             </div>
           </article>
         </section>
+
+        <DashboardPerformancePanel userName={session?.user.name ?? "Auteur"} />
 
         <section className="mt-6 rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

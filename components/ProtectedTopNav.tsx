@@ -104,8 +104,6 @@ export default function ProtectedTopNav() {
           );
         })}
       </nav>
-
-      <div className="hidden lg:block lg:ml-64" />
     </>
   );
 }

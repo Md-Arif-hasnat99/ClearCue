@@ -209,7 +209,7 @@ export default function ReviewPage() {
     <main className="min-h-screen bg-[#131313] text-[#e5e2e1]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(78,222,163,0.1),transparent_35%),radial-gradient(circle_at_90%_4%,rgba(255,185,95,0.08),transparent_30%)]" />
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 pb-28 pt-4 sm:px-8 lg:ml-64 lg:max-w-none lg:px-12 lg:pb-12 lg:pt-8">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-28 pt-4 sm:px-8 lg:max-w-none lg:px-12 lg:pb-12 lg:pl-72 lg:pt-8">
         <ProtectedTopNav />
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
