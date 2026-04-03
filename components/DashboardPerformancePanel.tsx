@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { GamificationSummary } from "@/lib/gamification";
 
 type DashboardPerformancePanelProps = {
   userName: string;
@@ -31,6 +32,13 @@ const weeklyScores: WeeklyScore[] = [
   { day: "Thu", score: 83 },
   { day: "Fri", score: 86 },
 ];
+
+const badgeLabelMap: Record<string, string> = {
+  first_practice: "First Practice",
+  streak_3: "3-Day Streak",
+  streak_7: "7-Day Streak",
+  streak_30: "30-Day Streak",
+};
 
 const RADAR_SIZE = 280;
 const RADAR_CENTER = RADAR_SIZE / 2;
@@ -161,6 +169,47 @@ const drawCanvasRadar = (
 
 export default function DashboardPerformancePanel({ userName }: DashboardPerformancePanelProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [gamificationSummary, setGamificationSummary] = useState<GamificationSummary | null>(null);
+  const [gamificationError, setGamificationError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGamificationSummary = async () => {
+      try {
+        const response = await fetch("/api/gamification/summary", {
+          method: "GET",
+        });
+        const data = (await response.json()) as
+          | GamificationSummary
+          | {
+              error?: string;
+            };
+
+        if (!response.ok) {
+          const apiError = "error" in data ? data.error : "Unable to load streak summary";
+          throw new Error(apiError || "Unable to load streak summary");
+        }
+
+        if (isMounted) {
+          setGamificationSummary(data as GamificationSummary);
+          setGamificationError("");
+        }
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setGamificationError("Streak summary is temporarily unavailable.");
+        }
+      }
+    };
+
+    void loadGamificationSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const overallScore = useMemo(() => {
     const total = dimensions.reduce((sum, item) => sum + item.score, 0);
@@ -451,6 +500,60 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
           </div>
         </article>
       </div>
+
+      <article className="mt-4 rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Practice Streak</p>
+        {gamificationSummary ? (
+          <>
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-4xl font-extrabold text-[#4edea3]">
+                  {gamificationSummary.currentStreak}
+                  <span className="ml-2 text-base font-semibold text-[#8a938f]">days</span>
+                </p>
+                <p className="mt-1 text-sm text-[#cec5bf]">
+                  Longest run: {gamificationSummary.longestStreak} day
+                  {gamificationSummary.longestStreak === 1 ? "" : "s"}
+                </p>
+              </div>
+              <p className="text-xs text-[#8a938f]">
+                {gamificationSummary.nextMilestone
+                  ? `Next milestone: ${gamificationSummary.nextMilestone} days`
+                  : "All milestones unlocked"}
+              </p>
+            </div>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[#0e0e0e]">
+              <div
+                className="auteur-gradient h-full rounded-full"
+                style={{ width: `${gamificationSummary.progressToNextMilestone}%` }}
+              />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              {gamificationSummary.badges.length ? (
+                gamificationSummary.badges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="rounded-full border border-[#00402a] bg-[#00402a]/20 px-3 py-1.5 text-[#6ffbbe]"
+                  >
+                    {badgeLabelMap[badge] ?? badge}
+                  </span>
+                ))
+              ) : (
+                <span className="rounded-full border border-[#404945] bg-[#131313] px-3 py-1.5 text-[#8a938f]">
+                  Complete your first review to earn a badge
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-[#cec5bf]">Loading streak summary...</p>
+        )}
+        {gamificationError ? (
+          <p className="mt-3 rounded-md border border-[#93000a]/50 bg-[#93000a]/15 px-3 py-2 text-xs text-[#ffdad6]">
+            {gamificationError}
+          </p>
+        ) : null}
+      </article>
 
       <article className="mt-4 rounded-xl border border-[#404945]/30 bg-gradient-to-br from-[#201f1f] to-[#1b1b1b] p-5">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Scorecard Snapshot</p>

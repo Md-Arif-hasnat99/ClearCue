@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ProtectedTopNav from "@/components/ProtectedTopNav";
+import type { GamificationSummary } from "@/lib/gamification";
 import {
   INTERVIEW_REVIEW_STORAGE_KEY,
   type InterviewReviewSession,
@@ -18,6 +19,8 @@ type AnswerAnalysis = {
   strengths: string[];
   improvements: string[];
 };
+
+const PRACTICE_COMPLETION_PREFIX = "clearcue.practice-completed";
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -168,6 +171,8 @@ const getPerformanceLabel = (score: number) => {
 export default function ReviewPage() {
   const [session, setSession] = useState<InterviewReviewSession | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [practiceSummary, setPracticeSummary] = useState<GamificationSummary | null>(null);
+  const [practiceError, setPracticeError] = useState("");
 
   useEffect(() => {
     try {
@@ -189,6 +194,66 @@ export default function ReviewPage() {
       setLoadError("Unable to load interview review data.");
     }
   }, []);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const completionMarkerKey = `${PRACTICE_COMPLETION_PREFIX}:${session.completedAt}`;
+
+    try {
+      const alreadyMarked = localStorage.getItem(completionMarkerKey);
+      if (alreadyMarked === "1") {
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    let isMounted = true;
+
+    const markPracticeComplete = async () => {
+      try {
+        const response = await fetch("/api/gamification/practice-complete", {
+          method: "POST",
+        });
+        const data = (await response.json()) as
+          | GamificationSummary
+          | {
+              error?: string;
+            };
+
+        if (!response.ok) {
+          const apiError = "error" in data ? data.error : "Unable to mark practice";
+          throw new Error(apiError || "Unable to mark practice");
+        }
+
+        if (isMounted) {
+          setPracticeSummary(data as GamificationSummary);
+          setPracticeError("");
+
+          try {
+            localStorage.setItem(completionMarkerKey, "1");
+          } catch (storageError) {
+            console.error(storageError);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setPracticeError("Practice streak could not be updated right now.");
+        }
+      }
+    };
+
+    void markPracticeComplete();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
 
   const analyses = useMemo(() => {
     if (!session) {
@@ -249,8 +314,23 @@ export default function ReviewPage() {
               <div>
                 <p className="text-xl font-bold text-[#e5e2e1]">{getPerformanceLabel(overallScore)}</p>
                 <p className="mt-1 text-sm text-[#cec5bf]">Compared to your latest response set.</p>
+                {practiceSummary ? (
+                  <p className="mt-2 text-xs text-[#4edea3]">
+                    Streak: {practiceSummary.currentStreak} day{practiceSummary.currentStreak === 1 ? "" : "s"}
+                  </p>
+                ) : null}
               </div>
             </div>
+            {practiceSummary?.awardedBadges.length ? (
+              <p className="mt-4 rounded-lg border border-[#00402a] bg-[#00402a]/25 px-3 py-2 text-xs text-[#6ffbbe]">
+                New badge unlocked: {practiceSummary.awardedBadges.join(", ").replaceAll("_", " ")}
+              </p>
+            ) : null}
+            {practiceError ? (
+              <p className="mt-4 rounded-lg border border-[#93000a]/50 bg-[#93000a]/15 px-3 py-2 text-xs text-[#ffdad6]">
+                {practiceError}
+              </p>
+            ) : null}
           </div>
         </section>
 
