@@ -361,11 +361,42 @@ export default function InterviewSetup() {
         durationSeconds: durations[index] ?? 0,
       })),
     };
+    const payloadJson = JSON.stringify(payload);
 
     try {
-      localStorage.setItem(INTERVIEW_REVIEW_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(INTERVIEW_REVIEW_STORAGE_KEY, payloadJson);
     } catch (error) {
       console.error("Local storage save error:", error);
+
+      let backupSaved = false;
+
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(payloadJson);
+          backupSaved = true;
+          setErrorMessage(
+            "Local backup failed. Your interview data was copied to clipboard. Paste it somewhere safe."
+          );
+        }
+      } catch (clipboardError) {
+        console.error("Clipboard backup error:", clipboardError);
+      }
+
+      if (!backupSaved) {
+        const blob = new Blob([payloadJson], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "clearcue-interview-backup.json";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setErrorMessage(
+          `Local backup failed for key ${INTERVIEW_REVIEW_STORAGE_KEY}. A JSON backup file was downloaded.`
+        );
+      }
     }
 
     try {

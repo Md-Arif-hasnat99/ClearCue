@@ -29,6 +29,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ dimensions: null, weeklyScores: null });
     }
 
+    const toDateKey = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     // Calculate dimensions average across the trailing 7 days relative to the number of sessions
     const total = sessions.length;
     const dimensions = [
@@ -42,11 +49,11 @@ export async function GET(req: Request) {
     // Build weekly trend based on days. We compress multiple sessions in a day into an average.
     const dayMap = new Map<string, number[]>();
     for (const s of sessions) {
-      const dayRaw = new Date(s.completedAt).toLocaleDateString("en-US", { weekday: "short" });
-      if (!dayMap.has(dayRaw)) {
-        dayMap.set(dayRaw, []);
+      const dateKey = toDateKey(new Date(s.completedAt));
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, []);
       }
-      dayMap.get(dayRaw)!.push(s.overallScore);
+      dayMap.get(dateKey)!.push(s.overallScore);
     }
 
     const last5Days = [];
@@ -54,10 +61,10 @@ export async function GET(req: Request) {
     for (let i = 4; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dayRaw = d.toLocaleDateString("en-US", { weekday: "short" });
-      const dayScores = dayMap.get(dayRaw);
+      const dateKey = toDateKey(d);
+      const dayScores = dayMap.get(dateKey);
       const score = dayScores && dayScores.length ? Math.round(dayScores.reduce((acc, score) => acc + score, 0) / dayScores.length) : 0;
-      last5Days.push({ day: dayRaw, score });
+      last5Days.push({ day: d.toLocaleDateString("en-US", { weekday: "short" }), score });
     }
 
     return NextResponse.json({

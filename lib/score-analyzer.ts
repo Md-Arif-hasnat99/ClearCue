@@ -27,7 +27,7 @@ export const average = (values: number[]) => {
 export const analyzeAnswer = (
   item: InterviewReviewItem
 ): AnswerAnalysis => {
-  const answer = item.answer.trim();
+  const answer = (item.answer ?? "").trim();
   const wordCount = answer ? answer.split(/\s+/).filter(Boolean).length : 0;
 
   const durationSeconds = item.durationSeconds || 0;

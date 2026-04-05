@@ -166,6 +166,7 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
 
   const dimensions = useMemo(() => stats?.dimensions || [], [stats?.dimensions]);
   const weeklyScores = useMemo(() => stats?.weeklyScores || [], [stats?.weeklyScores]);
+  const weeklyColumnCount = Math.max(weeklyScores.length || 0, 1);
 
   useEffect(() => {
     let isMounted = true;
@@ -438,7 +439,10 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
           <>
             <article className="rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Weekly Bar Chart</p>
-              <div className="mt-4 grid h-64 grid-cols-5 items-end gap-3">
+              <div
+                className="mt-4 grid h-64 items-end gap-3"
+                style={{ gridTemplateColumns: `repeat(${weeklyColumnCount}, minmax(0, 1fr))` }}
+              >
                 {weeklyScores.map((item) => (
                   <div key={item.day} className="flex h-full flex-col items-center justify-end gap-2">
                     <p className="text-xs font-semibold text-[#e5e2e1]">{item.score}</p>
