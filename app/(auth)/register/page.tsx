@@ -27,6 +27,7 @@ export default function RegisterPage() {
 
     if (!name.trim()) nextErrors.name = "Name is required.";
     if (!email.trim()) nextErrors.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) nextErrors.email = "Enter a valid email address.";
     if (!password) nextErrors.password = "Password is required.";
     if (password.length > 0 && password.length < 8) {
       nextErrors.password = "Password must be at least 8 characters.";

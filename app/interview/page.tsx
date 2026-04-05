@@ -73,12 +73,14 @@ export default function InterviewSetup() {
   const [isInterviewCompleted, setIsInterviewCompleted] = useState(false);
   const [isLoadingSave, setIsLoadingSave] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const currentQuestionIndexRef = useRef(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [durations, setDurations] = useState<number[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const recognitionStoppedRef = useRef<(() => void) | null>(null);
   const [formData, setFormData] = useState({
     jobTitle: "",
     industry: "",
@@ -99,19 +101,25 @@ export default function InterviewSetup() {
     };
   }, []);
 
-  useEffect(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-    setIsSpeaking(false);
-    setIsInterviewStarted(false);
-    setIsInterviewCompleted(false);
-    setCurrentQuestionIndex(0);
-    setAnswers(questions.map(() => ""));
-    setDurations(questions.map(() => 0));
+  const questionsRef = useRef<InterviewQuestion[]>([]);
 
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+  useEffect(() => {
+    if (questions.length > 0 && questionsRef.current.length === 0) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      setIsSpeaking(false);
+      setIsInterviewStarted(false);
+      setIsInterviewCompleted(false);
+      setCurrentQuestionIndex(0);
+      currentQuestionIndexRef.current = 0;
+      setAnswers(questions.map(() => ""));
+      setDurations(questions.map(() => 0));
+
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     }
+    questionsRef.current = questions;
   }, [questions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -210,6 +218,7 @@ export default function InterviewSetup() {
     setIsInterviewCompleted(false);
     setIsInterviewStarted(true);
     setCurrentQuestionIndex(0);
+    currentQuestionIndexRef.current = 0;
     setAnswers(questions.map(() => ""));
     setDurations(questions.map(() => 0));
     speakQuestion(0);
@@ -227,10 +236,23 @@ export default function InterviewSetup() {
     }
   };
 
-  const stopListening = () => {
-    stopRecordDuration();
-    recognitionRef.current?.stop();
-    setIsListening(false);
+  const stopListening = (): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      stopRecordDuration();
+      if (recognitionRef.current && isListening) {
+        const prevOnEnd = recognitionRef.current.onend;
+        recognitionRef.current.onend = () => {
+          stopRecordDuration();
+          setIsListening(false);
+          resolve();
+          prevOnEnd?.();
+        };
+        recognitionRef.current.stop();
+      } else {
+        setIsListening(false);
+        resolve();
+      }
+    });
   };
 
   const startListening = () => {
@@ -283,7 +305,7 @@ export default function InterviewSetup() {
 
       setAnswers((prev) => {
         const next = [...prev];
-        next[currentQuestionIndex] = combinedTranscript;
+        next[currentQuestionIndexRef.current] = combinedTranscript;
         return next;
       });
     };
@@ -318,7 +340,7 @@ export default function InterviewSetup() {
   const handleAnswerChange = (value: string) => {
     setAnswers((prev) => {
       const next = [...prev];
-      next[currentQuestionIndex] = value;
+      next[currentQuestionIndexRef.current] = value;
       return next;
     });
   };
@@ -328,7 +350,7 @@ export default function InterviewSetup() {
       return;
     }
 
-    stopListening();
+    await stopListening();
 
     if (currentQuestionIndex >= questions.length - 1) {
       await saveInterviewSession();
@@ -336,6 +358,7 @@ export default function InterviewSetup() {
     }
 
     const nextIndex = currentQuestionIndex + 1;
+    currentQuestionIndexRef.current = nextIndex;
     setCurrentQuestionIndex(nextIndex);
     setTimeout(() => {
       speakQuestion(nextIndex);
@@ -363,40 +386,13 @@ export default function InterviewSetup() {
     };
     const payloadJson = JSON.stringify(payload);
 
+    let localSaveFailed = false;
+
     try {
       localStorage.setItem(INTERVIEW_REVIEW_STORAGE_KEY, payloadJson);
     } catch (error) {
-      console.error("Local storage save error:", error);
-
-      let backupSaved = false;
-
-      try {
-        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(payloadJson);
-          backupSaved = true;
-          setErrorMessage(
-            "Local backup failed. Your interview data was copied to clipboard. Paste it somewhere safe."
-          );
-        }
-      } catch (clipboardError) {
-        console.error("Clipboard backup error:", clipboardError);
-      }
-
-      if (!backupSaved) {
-        const blob = new Blob([payloadJson], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "clearcue-interview-backup.json";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        setErrorMessage(
-          `Local backup failed for key ${INTERVIEW_REVIEW_STORAGE_KEY}. A JSON backup file was downloaded.`
-        );
-      }
+      console.warn("localStorage unavailable, relying on server save:", error);
+      localSaveFailed = true;
     }
 
     try {
@@ -409,9 +405,45 @@ export default function InterviewSetup() {
       if (!response.ok) {
         throw new Error("Failed to save session to DB");
       }
+
+      if (localSaveFailed) {
+        setErrorMessage(
+          "Interview saved to your account. Browser storage is blocked, so local review may not persist after refresh."
+        );
+      }
     } catch (error) {
       console.error("API save error:", error);
-      setErrorMessage("Interview finished, but unable to sync with history reliably. Fallback local review preserved.");
+
+      if (localSaveFailed) {
+        try {
+          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(payloadJson);
+            setErrorMessage(
+              "Could not save locally or to server. Your interview data was copied to clipboard as a backup."
+            );
+          } else {
+            throw new Error("Clipboard unavailable");
+          }
+        } catch {
+          const blob = new Blob([payloadJson], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "clearcue-interview-backup.json";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          setErrorMessage(
+            "Could not save to server or browser. A JSON backup file was downloaded instead."
+          );
+        }
+      } else {
+        setErrorMessage(
+          "Interview saved locally but could not sync with your account. Your review is still available."
+        );
+      }
     } finally {
       setIsLoadingSave(false);
       setIsInterviewCompleted(true);

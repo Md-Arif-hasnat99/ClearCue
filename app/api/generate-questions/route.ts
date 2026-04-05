@@ -89,11 +89,7 @@ CRITICAL: Return ONLY the raw JSON array. Do not include markdown formatting lik
 
     // Sometimes the AI might still wrap in markdown codeblocks despite instructions, so we clean it
     let cleanText = text.trim();
-    if (cleanText.startsWith("\`\`\`json")) {
-      cleanText = cleanText.substring(7, cleanText.length - 3).trim();
-    } else if (cleanText.startsWith("\`\`\`")) {
-      cleanText = cleanText.substring(3, cleanText.length - 3).trim();
-    }
+    cleanText = cleanText.replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/i, "$1").trim();
 
     const parsed = JSON.parse(cleanText);
     const questionsSource = Array.isArray(parsed) ? parsed : parsed?.questions;

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Epilogue, Manrope } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
+import "./globals.css";
 
 const epilogue = Epilogue({
   subsets: ["latin"],

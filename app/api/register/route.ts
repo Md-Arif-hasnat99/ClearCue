@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import { rateLimit } from "@/lib/rate-limiter";
+
+const REGISTER_LIMIT = { maxRequests: 3, windowMs: 60 * 1000 };
 
 type RegisterPayload = {
   name?: string;
@@ -11,6 +14,16 @@ type RegisterPayload = {
 };
 
 export async function POST(request: Request) {
+  const limit = rateLimit(request.headers, REGISTER_LIMIT);
+
+  if (!limit.success) {
+    const retryAfter = Math.ceil((limit.resetAt - Date.now()) / 1000);
+    return NextResponse.json(
+      { error: `Too many registration attempts. Try again in ${retryAfter}s.` },
+      { status: 429 },
+    );
+  }
+
   try {
     const body = (await request.json()) as RegisterPayload;
     const name = body.name?.trim();
@@ -20,6 +33,13 @@ export async function POST(request: Request) {
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Name, email, and password are required." },
+        { status: 400 },
+      );
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json(
+        { error: "Enter a valid email address." },
         { status: 400 },
       );
     }
@@ -46,11 +66,10 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unexpected error while registering.";
+    console.error(error);
 
     return NextResponse.json(
-      { error: `Registration failed: ${message}` },
+      { error: "Registration failed. Please try again later." },
       { status: 500 },
     );
   }

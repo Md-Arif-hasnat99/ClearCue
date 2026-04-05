@@ -39,7 +39,7 @@ export const analyzeAnswer = (
     answer
   );
   const hasExample = /\b(for example|for instance|e\.g\.|example)\b/i.test(answer);
-  const hasMetric = /\b\d+(\.\d+)?(%|x|k|m|ms|hour|hours|day|days|week|weeks|month|months|year|years)?\b/i.test(
+  const hasMetric = /\b\d+(\.\d+)?\s*(%|percent|x|k|m\b|ms|hours?|days?|weeks?|months?|years?)\b/i.test(
     answer
   );
   const hasImpact =
@@ -187,7 +187,7 @@ export const computeSessionScores = (items: InterviewReviewItem[]) => {
   const analyses = items.map(analyzeAnswer);
   
   const hasExampleCount = items.filter(item => /\b(for example|for instance|e\.g\.|example)\b/i.test(item.answer)).length;
-  const hasMetricCount = items.filter(item => /\b\d+(\.\d+)?(%|x|k|m|ms|hour|hours|day|days|week|weeks|month|months|year|years)?\b/i.test(item.answer)).length;
+  const hasMetricCount = items.filter(item => /\b\d+(\.\d+)?\s*(%|percent|x|k|m\b|ms|hours?|days?|weeks?|months?|years?)\b/i.test(item.answer)).length;
   const hasImpactCount = items.filter(item => /\b(result|impact|improve|improved|increase|increased|reduce|reduced|achieved|outcome|led to)\b/i.test(item.answer)).length;
   const hasStructureCount = items.filter(item => /\b(first|second|third|finally|step|approach|framework)\b/i.test(item.answer)).length;
   
