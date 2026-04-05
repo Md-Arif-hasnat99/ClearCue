@@ -259,7 +259,7 @@ export default function ReviewPage() {
                     {avgWpm > 0 ? avgWpm : '--'}
                   </p>
                   <p className="mt-2 text-sm text-[#cec5bf] whitespace-nowrap">
-                    Target: 130 - 150
+                    Target: 110 - 160
                   </p>
                 </div>
                 <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
@@ -326,7 +326,7 @@ export default function ReviewPage() {
                     <div className="mt-3 flex items-center gap-4 text-xs">
                       <p className="text-[#8a938f]">Word count: <span className="font-semibold text-[#e5e2e1]">{analysis.wordCount}</span></p>
                       <p className="text-[#8a938f]">Speaking pacing: <span className="font-semibold text-[#e5e2e1]">{analysis.pacingWpm > 0 ? `${analysis.pacingWpm} WPM` : '--'}</span></p>
-                      <p className="text-[#8a938f]">Filler words: <span className="font-semibold text-[#e5e2e1]">{analysis.fillerWordsCount}</span></p>
+                      <p className="text-[#8a938f]">Filler words: <span className="font-semibold text-[#e5e2e1]">{analysis.fillerWordsCount ?? 0}</span></p>
                     </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
