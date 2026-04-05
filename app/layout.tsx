@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Epilogue, Manrope } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 
@@ -31,6 +32,7 @@ export default function RootLayout({
         <SessionProviderClient>
           <div className="h-dvh overflow-hidden">{children}</div>
         </SessionProviderClient>
+        <SpeedInsights />
       </body>
     </html>
   );
