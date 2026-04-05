@@ -9,6 +9,7 @@ export type InterviewReviewItem = {
   question: string;
   type: string;
   answer: string;
+  durationSeconds?: number;
 };
 
 export type InterviewReviewSession = {

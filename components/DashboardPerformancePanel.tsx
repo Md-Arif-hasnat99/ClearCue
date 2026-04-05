@@ -17,21 +17,10 @@ type WeeklyScore = {
   score: number;
 };
 
-const dimensions: DimensionScore[] = [
-  { label: "Clarity", score: 84 },
-  { label: "Confidence", score: 88 },
-  { label: "Structure", score: 79 },
-  { label: "Specificity", score: 73 },
-  { label: "Impact", score: 81 },
-];
-
-const weeklyScores: WeeklyScore[] = [
-  { day: "Mon", score: 62 },
-  { day: "Tue", score: 71 },
-  { day: "Wed", score: 77 },
-  { day: "Thu", score: 83 },
-  { day: "Fri", score: 86 },
-];
+type UserStats = {
+  dimensions: DimensionScore[] | null;
+  weeklyScores: WeeklyScore[] | null;
+};
 
 const badgeLabelMap: Record<string, string> = {
   first_practice: "First Practice",
@@ -171,9 +160,35 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
   const [isDownloading, setIsDownloading] = useState(false);
   const [gamificationSummary, setGamificationSummary] = useState<GamificationSummary | null>(null);
   const [gamificationError, setGamificationError] = useState("");
+  
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsError, setStatsError] = useState("");
+
+  const dimensions = useMemo(() => stats?.dimensions || [], [stats?.dimensions]);
+  const weeklyScores = useMemo(() => stats?.weeklyScores || [], [stats?.weeklyScores]);
 
   useEffect(() => {
     let isMounted = true;
+
+    const loadStats = async () => {
+      try {
+        const response = await fetch("/api/user-stats");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load stats");
+        }
+        if (isMounted) {
+          setStats(data as UserStats);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setStatsError("Performance data is temporarily unavailable.");
+        }
+      }
+    };
+    
+    void loadStats();
 
     const loadGamificationSummary = async () => {
       try {
@@ -212,17 +227,19 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
   }, []);
 
   const overallScore = useMemo(() => {
+    if (!dimensions.length) return 0;
     const total = dimensions.reduce((sum, item) => sum + item.score, 0);
     return Math.round(total / dimensions.length);
-  }, []);
+  }, [dimensions]);
 
   const radarGridPolygons = useMemo(() => {
     const rings = [0.2, 0.4, 0.6, 0.8, 1];
+    const totalDims = dimensions.length || 5;
 
     return rings.map((ring) => {
-      const points = dimensions
+      const points = Array.from({ length: totalDims })
         .map((_, index) => {
-          const angle = angleForIndex(index, dimensions.length);
+          const angle = angleForIndex(index, totalDims);
           const point = polarToCartesian(RADAR_RADIUS * ring, angle);
           return `${point.x},${point.y}`;
         })
@@ -230,17 +247,17 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
 
       return points;
     });
-  }, []);
+  }, [dimensions]);
 
   const radarPoints = useMemo(
     () =>
       dimensions
         .map((item, index) => {
-          const point = toRadarPoint(item.score, index, dimensions.length);
+          const point = toRadarPoint(item.score, index, dimensions.length || 1);
           return `${point.x},${point.y}`;
         })
         .join(" "),
-    []
+    [dimensions]
   );
 
   const downloadScorecardPng = async () => {
@@ -404,101 +421,120 @@ export default function DashboardPerformancePanel({ userName }: DashboardPerform
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <article className="rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Weekly Bar Chart</p>
-          <div className="mt-4 grid h-64 grid-cols-5 items-end gap-3">
-            {weeklyScores.map((item) => (
-              <div key={item.day} className="flex h-full flex-col items-center justify-end gap-2">
-                <p className="text-xs font-semibold text-[#e5e2e1]">{item.score}</p>
-                <div className="relative flex h-44 w-full items-end rounded-lg bg-[#131313] p-1.5">
-                  <div
-                    className="auteur-gradient w-full rounded-md"
-                    style={{ height: `${Math.max(item.score, 8)}%` }}
-                  />
-                </div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a938f]">{item.day}</p>
+        {!stats ? (
+          <article className="col-span-2 rounded-xl border border-[#404945]/30 bg-[#201f1f] p-8 text-center">
+            {statsError ? (
+              <p className="text-sm text-[#ffdad6]">{statsError}</p>
+            ) : (
+              <p className="text-sm text-[#cec5bf]">Loading performance data...</p>
+            )}
+          </article>
+        ) : dimensions.length === 0 ? (
+          <article className="col-span-2 rounded-xl border border-[#404945]/30 bg-[#201f1f] p-8 text-center">
+            <h3 className="text-xl font-bold text-[#e5e2e1]">No Practice Data Yet</h3>
+            <p className="mt-2 text-sm text-[#cec5bf]">Complete your first interview session to unlock your performance scorecard and weekly trend.</p>
+          </article>
+        ) : (
+          <>
+            <article className="rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Weekly Bar Chart</p>
+              <div className="mt-4 grid h-64 grid-cols-5 items-end gap-3">
+                {weeklyScores.map((item) => (
+                  <div key={item.day} className="flex h-full flex-col items-center justify-end gap-2">
+                    <p className="text-xs font-semibold text-[#e5e2e1]">{item.score}</p>
+                    <div className="relative flex h-44 w-full items-end rounded-lg bg-[#131313] p-1.5">
+                      <div
+                        className="auteur-gradient w-full rounded-md"
+                        style={{ height: `${Math.max(item.score, 8)}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a938f]">{item.day}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </article>
+            </article>
 
-        <article className="rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">5D Graph (Radar)</p>
+            <article className="rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">5D Graph (Radar)</p>
 
-          <div className="mt-3 flex justify-center">
-            <svg
-              viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
-              className="h-[280px] w-full max-w-[320px]"
-              role="img"
-              aria-label="Five-dimension performance radar graph"
-            >
-              {radarGridPolygons.map((points) => (
-                <polygon
-                  key={points}
-                  points={points}
-                  fill="none"
-                  stroke="rgba(206,197,191,0.2)"
-                  strokeWidth="1"
-                />
-              ))}
+              <div className="mt-3 flex justify-center">
+                <svg
+                  viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
+                  className="h-[280px] w-full max-w-[320px]"
+                  role="img"
+                  aria-label="Five-dimension performance radar graph"
+                >
+                  {radarGridPolygons.map((points) => (
+                    <polygon
+                      key={points}
+                      points={points}
+                      fill="none"
+                      stroke="rgba(206,197,191,0.2)"
+                      strokeWidth="1"
+                    />
+                  ))}
 
-              {dimensions.map((item, index) => {
-                const outer = polarToCartesian(RADAR_RADIUS, angleForIndex(index, dimensions.length));
-                return (
-                  <line
-                    key={`${item.label}-axis`}
-                    x1={RADAR_CENTER}
-                    y1={RADAR_CENTER}
-                    x2={outer.x}
-                    y2={outer.y}
-                    stroke="rgba(206,197,191,0.2)"
-                    strokeWidth="1"
-                  />
-                );
-              })}
+                  {dimensions.map((item, index) => {
+                    const outer = polarToCartesian(RADAR_RADIUS, angleForIndex(index, dimensions.length));
+                    return (
+                      <line
+                        key={`${item.label}-axis`}
+                        x1={RADAR_CENTER}
+                        y1={RADAR_CENTER}
+                        x2={outer.x}
+                        y2={outer.y}
+                        stroke="rgba(206,197,191,0.2)"
+                        strokeWidth="1"
+                      />
+                    );
+                  })}
 
-              <polygon
-                points={radarPoints}
-                fill="rgba(78,222,163,0.26)"
-                stroke="rgba(78,222,163,0.92)"
-                strokeWidth="2"
-              />
+                  {radarPoints && (
+                    <polygon
+                      points={radarPoints}
+                      fill="rgba(78,222,163,0.26)"
+                      stroke="rgba(78,222,163,0.92)"
+                      strokeWidth="2"
+                    />
+                  )}
 
-              {dimensions.map((item, index) => {
-                const point = toRadarPoint(item.score, index, dimensions.length);
-                const labelPoint = polarToCartesian(
-                  RADAR_RADIUS + 22,
-                  angleForIndex(index, dimensions.length)
-                );
+                  {dimensions.map((item, index) => {
+                    const point = toRadarPoint(item.score, index, dimensions.length);
+                    const labelPoint = polarToCartesian(
+                      RADAR_RADIUS + 22,
+                      angleForIndex(index, dimensions.length)
+                    );
 
-                return (
-                  <g key={item.label}>
-                    <circle cx={point.x} cy={point.y} r="3.5" fill="#4edea3" />
-                    <text
-                      x={labelPoint.x}
-                      y={labelPoint.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="#cec5bf"
-                      fontSize="11"
-                      fontWeight="700"
-                    >
-                      {item.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
+                    return (
+                      <g key={item.label}>
+                        <circle cx={point.x} cy={point.y} r="3.5" fill="#4edea3" />
+                        <text
+                          x={labelPoint.x}
+                          y={labelPoint.y}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="#cec5bf"
+                          fontSize="11"
+                          fontWeight="700"
+                        >
+                          {item.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
 
-          <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[#cec5bf]">
-            {dimensions.map((item) => (
-              <p key={item.label} className="rounded-md bg-[#131313] px-3 py-2">
-                <span className="font-semibold text-[#e5e2e1]">{item.label}</span>: {item.score}
-              </p>
-            ))}
-          </div>
-        </article>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[#cec5bf]">
+                {dimensions.map((item) => (
+                  <p key={item.label} className="rounded-md bg-[#131313] px-3 py-2">
+                    <span className="font-semibold text-[#e5e2e1]">{item.label}</span>: {item.score}
+                  </p>
+                ))}
+              </div>
+            </article>
+          </>
+        )}
       </div>
 
       <article className="mt-4 rounded-xl border border-[#404945]/30 bg-[#201f1f] p-5">

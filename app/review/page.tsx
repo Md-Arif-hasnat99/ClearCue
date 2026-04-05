@@ -9,164 +9,16 @@ import {
   type InterviewReviewSession,
 } from "@/lib/interview-session";
 
-type AnswerAnalysis = {
-  id: number;
-  question: string;
-  type: string;
-  answer: string;
-  wordCount: number;
-  score: number;
-  strengths: string[];
-  improvements: string[];
-};
+import {
+  type AnswerAnalysis,
+  analyzeAnswer,
+  average,
+  getPerformanceLabel,
+  getPriorityImprovements,
+  getTopStrengths,
+} from "@/lib/score-analyzer";
 
 const PRACTICE_COMPLETION_PREFIX = "clearcue.practice-completed";
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const average = (values: number[]) => {
-  if (!values.length) {
-    return 0;
-  }
-
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-};
-
-const analyzeAnswer = (
-  item: InterviewReviewSession["items"][number]
-): AnswerAnalysis => {
-  const answer = item.answer.trim();
-  const wordCount = answer ? answer.split(/\s+/).filter(Boolean).length : 0;
-
-  const hasStructure = /\b(first|second|third|finally|step|approach|framework)\b/i.test(
-    answer
-  );
-  const hasExample = /\b(for example|for instance|e\.g\.|example)\b/i.test(answer);
-  const hasMetric = /\b\d+(\.\d+)?(%|x|k|m|ms|hour|hours|day|days|week|weeks|month|months|year|years)?\b/i.test(
-    answer
-  );
-  const hasImpact =
-    /\b(result|impact|improve|improved|increase|increased|reduce|reduced|achieved|outcome|led to)\b/i.test(
-      answer
-    );
-  const hasOwnership = /\b(i|my|me)\b/i.test(answer);
-
-  const contentScore = clamp(Math.round((wordCount / 80) * 100), 0, 100);
-  const structureScore = clamp(
-    (hasStructure ? 45 : 10) + (hasOwnership ? 25 : 10) + (wordCount >= 30 ? 30 : 5),
-    0,
-    100
-  );
-  const specificityScore = clamp(
-    (hasExample ? 40 : 10) + (hasMetric ? 40 : 5) + (wordCount >= 40 ? 20 : 10),
-    0,
-    100
-  );
-  const impactScore = clamp((hasImpact ? 60 : 15) + (hasMetric ? 25 : 10) + 15, 0, 100);
-
-  let score = Math.round((contentScore + structureScore + specificityScore + impactScore) / 4);
-
-  if (wordCount > 220) {
-    score = Math.max(0, score - 12);
-  }
-
-  const strengths: string[] = [];
-  const improvements: string[] = [];
-
-  if (wordCount >= 45) {
-    strengths.push("Good depth in explanation");
-  } else {
-    improvements.push("Expand your answer with more reasoning and context");
-  }
-
-  if (hasStructure) {
-    strengths.push("Clear structure is visible");
-  } else {
-    improvements.push("Use a framework: first, second, finally");
-  }
-
-  if (hasExample) {
-    strengths.push("Concrete example included");
-  } else {
-    improvements.push("Include one specific example from your experience");
-  }
-
-  if (hasMetric) {
-    strengths.push("Includes measurable evidence");
-  } else {
-    improvements.push("Add metrics or outcomes to make impact believable");
-  }
-
-  if (hasImpact) {
-    strengths.push("Explains business or project impact");
-  } else {
-    improvements.push("End with the result or impact of your actions");
-  }
-
-  if (!answer) {
-    improvements.length = 0;
-    improvements.push("No answer captured. Record or type your response to get useful feedback.");
-    score = 0;
-  }
-
-  return {
-    id: item.id,
-    question: item.question,
-    type: item.type,
-    answer,
-    wordCount,
-    score,
-    strengths,
-    improvements,
-  };
-};
-
-const getPriorityImprovements = (analyses: AnswerAnalysis[]) => {
-  const counter = new Map<string, number>();
-
-  for (const analysis of analyses) {
-    for (const tip of analysis.improvements) {
-      counter.set(tip, (counter.get(tip) ?? 0) + 1);
-    }
-  }
-
-  return Array.from(counter.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([tip]) => tip);
-};
-
-const getTopStrengths = (analyses: AnswerAnalysis[]) => {
-  const counter = new Map<string, number>();
-
-  for (const analysis of analyses) {
-    for (const note of analysis.strengths) {
-      counter.set(note, (counter.get(note) ?? 0) + 1);
-    }
-  }
-
-  return Array.from(counter.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([note]) => note);
-};
-
-const getPerformanceLabel = (score: number) => {
-  if (score >= 85) {
-    return "Interview ready";
-  }
-
-  if (score >= 70) {
-    return "Strong baseline";
-  }
-
-  if (score >= 55) {
-    return "Promising, needs tightening";
-  }
-
-  return "Needs focused practice";
-};
 
 export default function ReviewPage() {
   const [session, setSession] = useState<InterviewReviewSession | null>(null);
@@ -270,6 +122,17 @@ export default function ReviewPage() {
     [analyses]
   );
 
+  const avgWpm = useMemo(() => {
+    const wpms = analyses.map((a) => a.pacingWpm).filter((v) => v > 0);
+    if (!wpms.length) return 0;
+    return Math.round(wpms.reduce((sum, v) => sum + v, 0) / wpms.length);
+  }, [analyses]);
+
+  const totalFillerWords = useMemo(
+    () => analyses.reduce((sum, a) => sum + (a.fillerWordsCount || 0), 0),
+    [analyses]
+  );
+
   return (
     <main className="min-h-screen bg-[#131313] text-[#e5e2e1]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(78,222,163,0.1),transparent_35%),radial-gradient(circle_at_90%_4%,rgba(255,185,95,0.08),transparent_30%)]" />
@@ -307,9 +170,29 @@ export default function ReviewPage() {
 
           <div className="glass-panel rounded-xl border border-[#404945]/30 p-6">
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Global Score</p>
-            <div className="mt-4 flex items-center gap-5">
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-full border-8 border-[#4edea3]/25">
-                <span className="text-4xl font-extrabold text-[#4edea3]">{overallScore}</span>
+            <div className="mt-6 flex items-center gap-6">
+              <div className="relative flex h-28 w-28 items-center justify-center">
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+                  {Array.from({ length: 32 }).map((_, i) => {
+                    const angle = -135 + (i * 270) / 31;
+                    const isFilled = i < (overallScore / 100) * 32;
+                    return (
+                      <line
+                        key={i}
+                        x1="50"
+                        y1="4"
+                        x2="50"
+                        y2="16"
+                        stroke={isFilled ? "#4edea3" : "#404945"}
+                        strokeWidth="4.5"
+                        strokeLinecap="round"
+                        transform={`rotate(${angle} 50 50)`}
+                        className={isFilled ? "opacity-100" : "opacity-30"}
+                      />
+                    );
+                  })}
+                </svg>
+                <span className="text-4xl font-extrabold text-[#4edea3] z-10">{overallScore}</span>
               </div>
               <div>
                 <p className="text-xl font-bold text-[#e5e2e1]">{getPerformanceLabel(overallScore)}</p>
@@ -350,25 +233,43 @@ export default function ReviewPage() {
           </section>
         ) : (
           <>
-            <section className="mt-6 grid gap-4 md:grid-cols-4">
-              <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5 md:col-span-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Role Context</p>
-                <p className="mt-3 text-sm text-[#e5e2e1]">{session.role}</p>
-                <p className="mt-1 text-sm text-[#cec5bf]">
-                  {session.industry} - {session.experience}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Overall Score</p>
-                <p className="mt-3 text-4xl font-semibold text-[#4edea3]">{overallScore}/100</p>
-                <p className="mt-2 text-sm text-[#cec5bf]">{getPerformanceLabel(overallScore)}</p>
-              </div>
-              <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Session Time</p>
-                <p className="mt-3 text-sm text-[#e5e2e1]">
-                  {new Date(session.completedAt).toLocaleString()}
-                </p>
-                <p className="mt-1 text-sm text-[#cec5bf]">Questions Reviewed: {analyses.length}</p>
+<section className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+                <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5 md:col-span-2 lg:col-span-2">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Role Context</p>
+                  <p className="mt-3 text-sm text-[#e5e2e1]">{session.role}</p>
+                  <p className="mt-1 text-sm text-[#cec5bf]">
+                    {session.industry} - {session.experience}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Overall Score</p>
+                  <p className="mt-3 text-4xl font-semibold text-[#4edea3]">{overallScore}/100</p>
+                  <p className="mt-2 text-sm text-[#cec5bf]">{getPerformanceLabel(overallScore)}</p>
+                </div>
+                <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Session Time</p>
+                  <p className="mt-3 text-sm text-[#e5e2e1]">
+                    {new Date(session.completedAt).toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-sm text-[#cec5bf]">Questions Reviewed: {analyses.length}</p>
+                </div>
+                <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Average WPM</p>
+                  <p className={`mt-3 text-4xl font-semibold ${avgWpm >= 110 && avgWpm <= 160 ? 'text-[#4edea3]' : 'text-[#ffb95f]'}`}>
+                    {avgWpm > 0 ? avgWpm : '--'}
+                  </p>
+                  <p className="mt-2 text-sm text-[#cec5bf] whitespace-nowrap">
+                    Target: 130 - 150
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#404945]/30 bg-[#1c1b1b] p-5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a938f]">Filler Words</p>
+                  <p className={`mt-3 text-4xl font-semibold ${totalFillerWords < 4 ? 'text-[#4edea3]' : totalFillerWords < 10 ? 'text-[#ffb95f]' : 'text-[#ffb4ab]'}`}>
+                    {totalFillerWords}
+                  </p>
+                  <p className="mt-2 text-sm text-[#cec5bf] whitespace-nowrap">
+                    ums, ahs, likes
+                  </p>
               </div>
             </section>
 
@@ -422,7 +323,11 @@ export default function ReviewPage() {
                     {analysis.answer || "No answer captured."}
                   </p>
 
-                  <p className="mt-3 text-xs text-[#8a938f]">Word count: {analysis.wordCount}</p>
+                    <div className="mt-3 flex items-center gap-4 text-xs">
+                      <p className="text-[#8a938f]">Word count: <span className="font-semibold text-[#e5e2e1]">{analysis.wordCount}</span></p>
+                      <p className="text-[#8a938f]">Speaking pacing: <span className="font-semibold text-[#e5e2e1]">{analysis.pacingWpm > 0 ? `${analysis.pacingWpm} WPM` : '--'}</span></p>
+                      <p className="text-[#8a938f]">Filler words: <span className="font-semibold text-[#e5e2e1]">{analysis.fillerWordsCount}</span></p>
+                    </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border border-[#00402a] bg-[#00402a]/25 p-3">

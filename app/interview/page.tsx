@@ -71,11 +71,14 @@ export default function InterviewSetup() {
     useState(false);
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [isInterviewCompleted, setIsInterviewCompleted] = useState(false);
+  const [isLoadingSave, setIsLoadingSave] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [durations, setDurations] = useState<number[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const startTimeRef = useRef<number | null>(null);
   const [formData, setFormData] = useState({
     jobTitle: "",
     industry: "",
@@ -104,6 +107,7 @@ export default function InterviewSetup() {
     setIsInterviewCompleted(false);
     setCurrentQuestionIndex(0);
     setAnswers(questions.map(() => ""));
+    setDurations(questions.map(() => 0));
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -207,10 +211,24 @@ export default function InterviewSetup() {
     setIsInterviewStarted(true);
     setCurrentQuestionIndex(0);
     setAnswers(questions.map(() => ""));
+    setDurations(questions.map(() => 0));
     speakQuestion(0);
   };
 
+  const stopRecordDuration = () => {
+    if (startTimeRef.current) {
+      const duration = (Date.now() - startTimeRef.current) / 1000;
+      setDurations((prev) => {
+        const next = [...prev];
+        next[currentQuestionIndex] = (next[currentQuestionIndex] || 0) + duration;
+        return next;
+      });
+      startTimeRef.current = null;
+    }
+  };
+
   const stopListening = () => {
+    stopRecordDuration();
     recognitionRef.current?.stop();
     setIsListening(false);
   };
@@ -271,6 +289,7 @@ export default function InterviewSetup() {
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      stopRecordDuration();
       setErrorMessage(
         event.error
           ? `Microphone error: ${event.error}. Check mic permission and try again.`
@@ -280,6 +299,7 @@ export default function InterviewSetup() {
     };
 
     recognition.onend = () => {
+      stopRecordDuration();
       setIsListening(false);
     };
 
@@ -287,6 +307,7 @@ export default function InterviewSetup() {
       setErrorMessage("");
       recognition.start();
       setIsListening(true);
+      startTimeRef.current = Date.now();
     } catch (error) {
       console.error(error);
       setIsListening(false);
@@ -302,7 +323,7 @@ export default function InterviewSetup() {
     });
   };
 
-  const moveToNextQuestion = () => {
+  const moveToNextQuestion = async () => {
     if (!questions.length) {
       return;
     }
@@ -310,8 +331,7 @@ export default function InterviewSetup() {
     stopListening();
 
     if (currentQuestionIndex >= questions.length - 1) {
-      saveInterviewSession();
-      setIsInterviewCompleted(true);
+      await saveInterviewSession();
       return;
     }
 
@@ -322,11 +342,12 @@ export default function InterviewSetup() {
     }, 100);
   };
 
-  const saveInterviewSession = () => {
+  const saveInterviewSession = async () => {
     if (typeof window === "undefined") {
       return;
     }
 
+    setIsLoadingSave(true);
     const payload: InterviewReviewSession = {
       role: formData.jobTitle,
       industry: formData.industry,
@@ -337,14 +358,32 @@ export default function InterviewSetup() {
         question: question.question,
         type: question.type,
         answer: answers[index] ?? "",
+        durationSeconds: durations[index] ?? 0,
       })),
     };
 
     try {
       localStorage.setItem(INTERVIEW_REVIEW_STORAGE_KEY, JSON.stringify(payload));
     } catch (error) {
-      console.error(error);
-      setErrorMessage("Interview finished, but unable to save data for review page.");
+      console.error("Local storage save error:", error);
+    }
+
+    try {
+      const response = await fetch("/api/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save session to DB");
+      }
+    } catch (error) {
+      console.error("API save error:", error);
+      setErrorMessage("Interview finished, but unable to sync with history reliably. Fallback local review preserved.");
+    } finally {
+      setIsLoadingSave(false);
+      setIsInterviewCompleted(true);
     }
   };
 
@@ -540,10 +579,11 @@ export default function InterviewSetup() {
 
                   <button
                     type="button"
-                    onClick={moveToNextQuestion}
-                    className="auteur-gradient rounded-lg px-6 py-3 text-sm font-bold text-[#003824]"
+                    onClick={() => void moveToNextQuestion()}
+                    disabled={isLoadingSave}
+                    className="auteur-gradient rounded-lg px-6 py-3 text-sm font-bold text-[#003824] disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {currentQuestionIndex === questions.length - 1 ? "Finish Interview" : "Next Question"}
+                    {isLoadingSave ? "Processing..." : (currentQuestionIndex === questions.length - 1 ? "Finish Interview" : "Next Question")}
                   </button>
                 </div>
               ) : null}
