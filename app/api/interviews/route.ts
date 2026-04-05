@@ -33,6 +33,18 @@ export async function POST(req: Request) {
       impact,
     } = computeSessionScores(items);
 
+    let parsedCompletedAt: Date | undefined;
+    if (completedAt) {
+      const candidate = new Date(completedAt);
+      if (Number.isNaN(candidate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid completedAt timestamp" },
+          { status: 400 }
+        );
+      }
+      parsedCompletedAt = candidate;
+    }
+
     await connectDB();
 
     const created = await InterviewSession.create({
@@ -47,7 +59,7 @@ export async function POST(req: Request) {
       specificityScore: specificity,
       impactScore: impact,
       items,
-      completedAt: completedAt ? new Date(completedAt) : new Date(),
+      completedAt: parsedCompletedAt ?? new Date(),
     });
 
     return NextResponse.json(
@@ -72,8 +84,24 @@ export async function GET(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-    const skip = parseInt(searchParams.get("skip") || "0", 10);
+    const limitDefault = 10;
+    const skipDefault = 0;
+    const maxLimit = 100;
+
+    let limit = parseInt(searchParams.get("limit") || String(limitDefault), 10);
+    let skip = parseInt(searchParams.get("skip") || String(skipDefault), 10);
+
+    // Validate and sanitize limit
+    if (!Number.isFinite(limit) || limit < 1) {
+      limit = limitDefault;
+    } else if (limit > maxLimit) {
+      limit = maxLimit;
+    }
+
+    // Validate and sanitize skip
+    if (!Number.isFinite(skip) || skip < 0) {
+      skip = skipDefault;
+    }
 
     await connectDB();
 
