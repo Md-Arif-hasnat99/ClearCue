@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Epilogue, Manrope } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import SessionProviderClient from "@/components/SessionProviderClient";
+// Ignore missing type declarations for global CSS side-effect import
+// TypeScript may complain about missing module declarations for .css files;
+// this import is valid in Next.js for global styles.
+// @ts-ignore
 import "./globals.css";
 
 const epilogue = Epilogue({
